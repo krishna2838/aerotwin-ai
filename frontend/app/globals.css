@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background: #0a0e1a;
+  color: #e6edf7;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+html.light, html.light body {
+  background: #f5f7fb;
+  color: #0a0e1a;
+}
+
+.panel {
+  @apply bg-ink-800/80 backdrop-blur border border-ink-700 rounded-xl;
+}
+html.light .panel { @apply bg-white border-slate-200; }
+
+.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; letter-spacing: 0.02em; }
+
+.pill {
+  @apply text-xs font-mono uppercase tracking-widest px-2.5 py-1 rounded-md border;
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(0,229,255,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.dot-pulse {
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+.scanline {
+  position: relative;
+  overflow: hidden;
+}
+.scanline::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent, rgba(0,229,255,0.06), transparent);
+  animation: scan 3.5s linear infinite;
+  pointer-events: none;
+}
+@keyframes scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
