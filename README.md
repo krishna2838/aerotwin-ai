@@ -103,21 +103,58 @@ npm run dev              # http://localhost:3000
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | REST base URL |
 | `NEXT_PUBLIC_WS_URL` | derived from `NEXT_PUBLIC_API_URL` | telemetry WebSocket base URL |
 
+## Live deployment
+
+* **Frontend (Vercel):** https://aerotwin-4mvn9ibwj-krishna-ghodkes-projects.vercel.app
+* **Backend (Render):** deploy via the blueprint below — sets up `https://aerotwin-backend.onrender.com`
+
+The frontend reads the backend URL from build-time env vars, so redeploy the frontend if the Render URL differs from the default.
+
 ## Deployment
 
-### Frontend → Vercel
+The repo is set up so both hosts read directly from GitHub:
 
-1. `cd frontend`
-2. `vercel --prod` (or import the repo in the Vercel dashboard)
-3. Set `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_WS_URL` in the Vercel project's env vars to your Render backend URL (`https://…` / `wss://…`).
+* Vercel is linked to this repo with `Root Directory = frontend` — every push to `main` auto-deploys the frontend.
+* Render reads `render.yaml` at the repo root — one blueprint apply creates the Docker service and every subsequent push auto-deploys.
 
-`vercel.json` is committed.
+### 1. Backend → Render (3 clicks)
 
-### Backend → Render
+1. Sign in at **https://dashboard.render.com**.
+2. Click **New +** → **Blueprint**.
+3. Connect this GitHub repo (`aerotwin-ai`) → Render reads `render.yaml`, previews the service, click **Apply**.
 
-* Render → **New Web Service** → Docker → point to `backend/`
-* Free tier (512 MB) is sufficient — models are pre-trained at Docker build time so cold-start is only Python import.
-* Port `8000`. Health check: `GET /health`.
+Render will pull the repo, build the `backend/Dockerfile` (which pre-trains models at build time), and expose the service at `https://aerotwin-backend.onrender.com` (free tier, Singapore region, `/health` health-check).
+
+### 2. Frontend → Vercel (one CLI command)
+
+```bash
+cd frontend
+vercel link --project aerotwin-ai
+vercel env add NEXT_PUBLIC_API_URL production   # https://aerotwin-backend.onrender.com
+vercel env add NEXT_PUBLIC_WS_URL  production   # wss://aerotwin-backend.onrender.com
+vercel --prod
+```
+
+The Vercel-GitHub integration takes over from here: every push to `main` triggers an auto-deploy from the `frontend/` sub-directory.
+
+### 3. Point frontend at backend (if URL differs)
+
+If Render assigned a different hostname (name collision, region change):
+
+```bash
+cd frontend
+vercel env rm  NEXT_PUBLIC_API_URL production
+vercel env rm  NEXT_PUBLIC_WS_URL  production
+vercel env add NEXT_PUBLIC_API_URL production   # https://<your-render-url>
+vercel env add NEXT_PUBLIC_WS_URL  production   # wss://<your-render-url>
+vercel --prod
+```
+
+### Notes on free-tier caveats
+
+* Render free tier sleeps a service after 15 min of inactivity. First request after sleep takes ~30 s to wake — the frontend's WebSocket layer auto-reconnects, so you'll see one long "RECONNECTING…" pill then live data.
+* Committed model artifacts (`backend/models/*.joblib`) mean Render never has to train on boot — cold start is import time only.
+* Free-tier Render single-worker gunicorn caps concurrent WebSocket connections. Fine for demo / judging; upgrade to Starter ($7/mo) for multi-user load.
 
 ### Dataset
 
